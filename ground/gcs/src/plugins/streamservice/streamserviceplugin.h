@@ -7,6 +7,8 @@
 //#include <coreplugin/iconfigurableplugin.h>
 
 #include <QtPlugin>
+#include <QTcpServer>
+#include <QTcpSocket>
 
 class StreamServicePlugin : public ExtensionSystem::IPlugin
 {
@@ -24,6 +26,20 @@ public:
 public slots:
 
     void objectUpdated(UAVObject *pObj);
+
+private slots:
+
+    void clientConnected();
+    void clientDisconnected();
+
+private:
+
+    QString bindAddress = "127.0.0.1";
+    quint16 port = 7891;
+
+
+    QTcpServer *pServer = Q_NULLPTR;
+    QList<QTcpSocket *> activeClients;
 
 };
 

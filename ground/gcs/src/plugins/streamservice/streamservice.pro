@@ -1,4 +1,4 @@
-#   QT       += core gui
+QT       += network widgets
 
 TARGET = StreamServicePlugin
 TEMPLATE = lib
