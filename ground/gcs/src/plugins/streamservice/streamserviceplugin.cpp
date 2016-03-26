@@ -1,7 +1,5 @@
 #include "streamserviceplugin.h"
 
-#include <iostream>
-
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QMessageBox>
@@ -29,19 +27,16 @@ bool StreamServicePlugin::initialize(const QStringList &arguments, QString *erro
 
     ExtensionSystem::PluginManager *pm = ExtensionSystem::PluginManager::instance();
 
-    std::cout  << "---------------- INIT MY PLUGIN --------------\n";
-
     UAVObjectManager *objManager = pm->getObject<UAVObjectManager>();
 
+    Q_ASSERT(objManager);
+
     QList< QList<UAVDataObject *> > objList = objManager->getDataObjects();
-    std::cout << "------------>>" << objList.size() << "\n";
     foreach(QList<UAVDataObject *> list, objList) {
         foreach(UAVDataObject * obj, list) {
             connect(obj, SIGNAL(objectUpdated(UAVObject *)), this, SLOT(objectUpdated(UAVObject *)));
         }
     }
-
-    //Q_ASSERT(objManager);
 
     return true;
 }
@@ -51,13 +46,10 @@ void StreamServicePlugin::extensionsInitialized()
     if(!pServer->listen(QHostAddress::Any, port))
     {
         QMessageBox::critical(Q_NULLPTR, tr("Stream Service"), tr("Couldn't start server!"));
-        delete pServer;
+        //delete pServer;
     }
 
     connect(pServer, SIGNAL(newConnection()), this, SLOT(clientConnected()));
-
-    std::cout << ">CLIENT CAN CONNECT\n";
-    std::cout.flush();
 }
 
 void StreamServicePlugin::shutdown()
@@ -76,15 +68,10 @@ void StreamServicePlugin::objectUpdated(UAVObject *pObj)
     QJsonDocument jsonDoc(qtjson);
     QString strJson(jsonDoc.toJson(QJsonDocument::Compact));
 
-    //std::cout << "\n\n\n-------------------------------> OBJECT Changed: " << strJson.toUtf8().constData() << "\n";
-
     foreach (QTcpSocket * pClient, activeClients)
-        if(pClient->isOpen()) {
-            //std::cout << ">CLIENT WRITING";
-            //std::cout.flush();
-            pClient->write(strJson.toUtf8().constData(), strJson.length());
-            pClient->flush();
-        }
+        if(pClient->isOpen())
+            if(pClient->write(strJson.toUtf8().constData(), strJson.length()))
+                pClient->flush();
 
 }
 
@@ -94,13 +81,9 @@ void StreamServicePlugin::clientConnected()
     QTcpSocket *pending = pServer->nextPendingConnection();
     connect(pending, SIGNAL(disconnected()), this, SLOT(clientDisconnected));
     activeClients.append(pending);
-    std::cout << ">CLIENT CONNECTED: " << pending->peerAddress().toString().toUtf8().constData() << ":" << pending->peerPort() << "\n";
-    std::cout.flush();
 }
 
 void StreamServicePlugin::clientDisconnected()
 {
     activeClients.removeAll((QTcpSocket *)sender());
-    std::cout << ">CLIENT DISCONNECTED\n";
-    std::cout.flush();
 }
